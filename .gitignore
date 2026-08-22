@@ -1,0 +1,7 @@
+.venv/
+api/dados/
+__pycache__/
+*.py[cod]
+.DS_Store
+web/dist/
+web/node_modules/

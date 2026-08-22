@@ -1,0 +1,63 @@
+/* Clareia — direção visual: névoa que clareia.
+   Fundo lilás-neblina, tinta ameixa, ação em índigo elétrico, prazo em âmbar.
+   Nada de vermelho de alarme: quem abre o app já está com pressa. */
+
+:root {
+  --papel: #f2f1f7;
+  --superficie: #ffffff;
+  --superficie-2: #faf9fd;
+  --tinta: #221a38;
+  --tinta-2: #635b7a;
+  --tinta-3: #918aa5;
+  --linha: #e2dfec;
+  --linha-forte: #cfcadd;
+
+  --acento: #4b3ad9;
+  --acento-2: #3a2cb0;
+  --acento-fraco: #ebe7ff;
+
+  --atraso: #b34a33;
+  --atraso-fraco: #fbeae5;
+  --feito: #1f7a66;
+  --feito-fraco: #e2f1ed;
+  --sol: #e0900f;
+  --sol-fraco: #fdf0d9;
+
+  --sombra: 0 1px 2px rgb(34 26 56 / 6%), 0 8px 24px -12px rgb(34 26 56 / 18%);
+  --sombra-alta: 0 2px 6px rgb(34 26 56 / 8%), 0 24px 48px -24px rgb(34 26 56 / 28%);
+
+  --display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --texto: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --r-p: 10px;
+  --r-m: 14px;
+  --r-g: 20px;
+
+  --largura: 62rem;
+}
+
+:root[data-tema='escuro'] {
+  --papel: #131120;
+  --superficie: #1c1930;
+  --superficie-2: #232038;
+  --tinta: #edeaf7;
+  --tinta-2: #a9a2c0;
+  --tinta-3: #7c7594;
+  --linha: #2e2a46;
+  --linha-forte: #3d3860;
+
+  --acento: #9c8bff;
+  --acento-2: #b4a6ff;
+  --acento-fraco: #2a2350;
+
+  --atraso: #ef9376;
+  --atraso-fraco: #3a231c;
+  --feito: #55c4a7;
+  --feito-fraco: #16332c;
+  --sol: #ffc15e;
+  --sol-fraco: #3a2c12;
+
+  --sombra: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px -12px rgb(0 0 0 / 60%);
+  --sombra-alta: 0 2px 6px rgb(0 0 0 / 50%), 0 24px 48px -24px rgb(0 0 0 / 70%);
+}
