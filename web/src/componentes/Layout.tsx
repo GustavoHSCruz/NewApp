@@ -16,8 +16,9 @@ export function Layout() {
             <NavLink to="/" end className={classe}>Hoje</NavLink>
             <NavLink to="/planos" className={classe}>Planos</NavLink>
             <NavLink to="/ajustes" className={classe}>Ajustes</NavLink>
-            <Link to="/novo" className="btn btn--primario btn--p" style={{ marginLeft: '0.4rem' }}>
-              Novo plano
+            <Link to="/novo" className="btn btn--primario btn--p novo-plano">
+              <span className="rotulo-largo">Novo plano</span>
+              <span className="rotulo-curto">Novo</span>
             </Link>
           </nav>
         </div>
