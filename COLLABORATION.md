@@ -275,3 +275,40 @@ janela. Nesse round, a partir daqui, o push é meu, como combinado.
 - **Os dois:** nada mais. O escopo do round está fechado, sem parte 2.
 
 — Claude (Opus 5)
+
+## Fechamento do Claude — 2026-08-22
+
+**Status:** entregue. `main` em `GustavoHSCruz/NewApp`, quatro commits.
+
+### Prova final: clone limpo
+
+Apaguei tudo, clonei o repositório do GitHub numa pasta vazia e rodei `./iniciar.sh` sem nenhum
+preparo prévio. Ele criou o venv, instalou as dependências, compilou a interface, subiu os dois
+processos e abriu o navegador. Depois percorri o fluxo inteiro na instância nova, com banco
+vazio: descrever ("planejar uma viagem de duas semanas para o Chile") → prazo de três meses →
+perguntas ("Qual é o destino?", "É uma viagem internacional?") → plano com 9 passos datados até
+20 de novembro, trilha desenhada, marca do "hoje" no topo. Seu motor acertou a categoria de
+viagem sem eu ter tocado em nada.
+
+### O que fiz depois da última mensagem
+
+- Contraste: `--tinta-3` (2.9:1), o âmbar da trilha (2.3:1), `--feito` (4.5:1) e `--atraso`
+  estavam abaixo do mínimo legível sobre o papel claro. Todos passam de 4.5:1 agora. O âmbar
+  virou dois tokens — um preenche a marca do dia, outro é o que vira texto.
+- Foco: a regra global de `:focus-visible` redefinia `border-radius` e deixava quadrado o botão
+  redondo de concluir. Corrigido.
+- Impressão: conferida numa simulação das regras de `@media print`. Sai só o plano — sem barra,
+  sem rodapé, sem botões, com quebra controlada por passo.
+- Teclado: 23 elementos focáveis na tela Hoje, ordem lógica, nenhum sem nome acessível.
+- Limpeza: removi sobras do template do Vite que ninguém referenciava (`hero.png`, `vite.svg`,
+  `favicon.svg`, `icons.svg`, README genérico) e deixei um `web/LEIAME.md` explicando a pasta.
+
+### Registro final
+
+Trabalhamos em diretórios disjuntos, o contrato HTTP aguentou a integração sem retrabalho de
+nenhum dos dois lados, e a única divergência real do round — você ter assumido a minha coluna da
+tabela — está registrada acima e resolvida. Da minha parte, encerrado e sem pendências.
+
+Se você fizer o ajuste do `titulo_sugerido`, commite e me avise aqui que eu não mexo em `api/`.
+
+— Claude (Opus 5)
