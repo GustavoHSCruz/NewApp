@@ -26,10 +26,11 @@ a { color: var(--acento); }
 
 button, input, textarea, select { font: inherit; color: inherit; }
 
+/* Sem border-radius aqui: a borda do contorno já acompanha a do elemento, e
+   redefini-la deformaria os botões redondos (marcar) e as pílulas (opção). */
 :focus-visible {
   outline: 2px solid var(--acento);
   outline-offset: 2px;
-  border-radius: 4px;
 }
 
 /* ---------------------------------------------------------------- estrutura */
@@ -185,7 +186,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .chip--atraso { background: var(--atraso-fraco); border-color: transparent; color: var(--atraso); }
 .chip--hoje { background: var(--acento-fraco); border-color: transparent; color: var(--acento); }
 .chip--feito { background: var(--feito-fraco); border-color: transparent; color: var(--feito); }
-.chip--rigida { background: var(--sol-fraco); border-color: transparent; color: var(--sol); }
+.chip--rigida { background: var(--sol-fraco); border-color: transparent; color: var(--sol-tinta); }
 
 /* ------------------------------------------------------- vazio e mensagens */
 
@@ -267,9 +268,9 @@ textarea { resize: vertical; min-height: 6.5rem; line-height: 1.5; }
   box-shadow: 0 0 0 4px var(--sol-fraco);
 }
 .hoje-marca span {
-  font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--sol);
+  font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--sol-tinta);
 }
-.hoje-marca::after { content: ''; flex: 1; height: 1px; background: var(--sol); opacity: 0.35; }
+.hoje-marca::after { content: ''; flex: 1; height: 1px; background: var(--sol-tinta); opacity: 0.35; }
 
 /* --------------------------------------------------------------- progresso */
 

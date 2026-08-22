@@ -8,7 +8,7 @@
   --superficie-2: #faf9fd;
   --tinta: #221a38;
   --tinta-2: #635b7a;
-  --tinta-3: #918aa5;
+  --tinta-3: #6f6885;
   --linha: #e2dfec;
   --linha-forte: #cfcadd;
 
@@ -16,11 +16,13 @@
   --acento-2: #3a2cb0;
   --acento-fraco: #ebe7ff;
 
-  --atraso: #b34a33;
+  --atraso: #9e3f2a;
   --atraso-fraco: #fbeae5;
-  --feito: #1f7a66;
+  --feito: #1a6b59;
   --feito-fraco: #e2f1ed;
-  --sol: #e0900f;
+  /* dois tons: um para preencher a marca do dia, outro para texto legível sobre papel */
+  --sol: #e09000;
+  --sol-tinta: #8a5300;
   --sol-fraco: #fdf0d9;
 
   --sombra: 0 1px 2px rgb(34 26 56 / 6%), 0 8px 24px -12px rgb(34 26 56 / 18%);
@@ -56,6 +58,7 @@
   --feito: #55c4a7;
   --feito-fraco: #16332c;
   --sol: #ffc15e;
+  --sol-tinta: #ffc15e;
   --sol-fraco: #3a2c12;
 
   --sombra: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px -12px rgb(0 0 0 / 60%);
