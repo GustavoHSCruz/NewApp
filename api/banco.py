@@ -39,4 +39,11 @@ def inicializar() -> None:
         );
         CREATE INDEX IF NOT EXISTS idx_passos_data ON passos(data_prevista);
         CREATE INDEX IF NOT EXISTS idx_passos_plano ON passos(plano_id, ordem);
+        CREATE TABLE IF NOT EXISTS configuracoes (
+          chave TEXT PRIMARY KEY, valor TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS modelos (
+          id TEXT PRIMARY KEY, nome TEXT NOT NULL, descricao TEXT NOT NULL,
+          categoria TEXT NOT NULL, passos_json TEXT NOT NULL, criado_em TEXT NOT NULL
+        );
         """)

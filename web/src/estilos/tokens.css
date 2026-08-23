@@ -64,3 +64,53 @@
   --sombra: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px -12px rgb(0 0 0 / 60%);
   --sombra-alta: 0 2px 6px rgb(0 0 0 / 50%), 0 24px 48px -24px rgb(0 0 0 / 70%);
 }
+
+/* Temas extras — parte do Clareia Apoiador.
+   Sépia: papel envelhecido, para quem lê muito tempo na tela.
+   Carvão: preto real, para telas OLED e para quem usa o app de madrugada. */
+
+:root[data-tema='sepia'] {
+  --papel: #f1e9db;
+  --superficie: #fbf5ea;
+  --superficie-2: #f6eee0;
+  --tinta: #322619;
+  --tinta-2: #5f503c;
+  --tinta-3: #7d6c53;
+  --linha: #e0d3bd;
+  --linha-forte: #c9b99e;
+
+  --acento: #2f6a58;
+  --acento-2: #245446;
+  --acento-fraco: #dceae4;
+
+  --atraso: #9a3f22;
+  --atraso-fraco: #f6e2d6;
+  --feito: #1f6b4f;
+  --feito-fraco: #dfeee6;
+  --sol: #c98a12;
+  --sol-tinta: #7d5300;
+  --sol-fraco: #f6e8cd;
+}
+
+:root[data-tema='carvao'] {
+  --papel: #000000;
+  --superficie: #0e0e12;
+  --superficie-2: #16161c;
+  --tinta: #f1f1f5;
+  --tinta-2: #a8a8b8;
+  --tinta-3: #7e7e91;
+  --linha: #232330;
+  --linha-forte: #35354a;
+
+  --acento: #a996ff;
+  --acento-2: #bcaeff;
+  --acento-fraco: #221d3d;
+
+  --atraso: #f09373;
+  --atraso-fraco: #2f1b14;
+  --feito: #55c4a7;
+  --feito-fraco: #102a24;
+  --sol: #ffc15e;
+  --sol-tinta: #ffc15e;
+  --sol-fraco: #33270f;
+}

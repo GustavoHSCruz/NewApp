@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html
+import json
 import sqlite3
 import uuid
 from contextlib import asynccontextmanager
@@ -15,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .banco import conectar, inicializar
 from .motor import classificar, distribuir, enriquecer_com_ollama, ollama_disponivel, passos_deterministicos, preparar, titulo_sugerido
+from .licenca import checkout_url, verificar as verificar_licenca
 
 VERSAO = "1.0.0"
 
@@ -66,6 +68,21 @@ class OrdemEntrada(Modelo):
     passos: list[str] = Field(min_length=1)
 
 
+class LicencaEntrada(Modelo):
+    chave: str = Field(min_length=20, max_length=5000)
+
+
+class ModeloEntrada(Modelo):
+    plano_id: str
+    nome: str = Field(min_length=1, max_length=100)
+
+
+class UsarModeloEntrada(Modelo):
+    titulo: str | None = Field(default=None, max_length=100)
+    descricao: str | None = Field(default=None, max_length=1000)
+    prazo_final: date
+
+
 def erro(status: int, codigo: str, mensagem: str) -> JSONResponse:
     return JSONResponse(status_code=status, content={"erro": {"codigo": codigo, "mensagem": mensagem}})
 
@@ -114,6 +131,36 @@ def obter_plano(db: sqlite3.Connection, plano_id: str) -> dict[str, Any] | None:
 
 def recurso_ausente(nome: str = "plano") -> JSONResponse:
     return erro(404, "nao_encontrado", f"Esse {nome} não existe mais.")
+
+
+def dados_licenca(db: sqlite3.Connection) -> dict[str, Any] | None:
+    linha = db.execute("SELECT valor FROM configuracoes WHERE chave='licenca_apoiador'").fetchone()
+    return verificar_licenca(linha["valor"]) if linha else None
+
+
+def estado_licenca(db: sqlite3.Connection) -> dict[str, Any]:
+    dados = dados_licenca(db)
+    return {"ativa": bool(dados), "apoiador": {"nome": dados.get("nome"), "email": dados.get("email"), "id": dados.get("id")} if dados else None, "checkout_url": checkout_url(), "preco": {"valor": 39, "moeda": "BRL", "tipo": "pagamento_unico"}}
+
+
+@app.get("/api/licenca")
+def consultar_licenca():
+    with conectar() as db: return estado_licenca(db)
+
+
+@app.post("/api/licenca")
+def ativar_licenca(entrada: LicencaEntrada):
+    dados = verificar_licenca(entrada.chave)
+    if not dados: return erro(422, "licenca_invalida", "Essa chave não é válida. Confira se ela foi copiada inteira.")
+    with conectar() as db:
+        db.execute("INSERT INTO configuracoes(chave,valor) VALUES('licenca_apoiador',?) ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor", (entrada.chave.strip(),))
+        return estado_licenca(db)
+
+
+@app.delete("/api/licenca", status_code=204)
+def desativar_licenca():
+    with conectar() as db: db.execute("DELETE FROM configuracoes WHERE chave='licenca_apoiador'")
+    return Response(status_code=204)
 
 
 @app.get("/api/saude")
@@ -170,9 +217,12 @@ def editar_plano(plano_id: str, entrada: PlanoEdicao):
         if "prazo_final" in dados:
             prazo = dados["prazo_final"]
             if prazo < date.today(): return erro(422, "prazo_no_passado", "O prazo não pode ficar no passado.")
+            prazo_anterior = atual["prazo_final"]
             pendentes = db.execute("SELECT id FROM passos WHERE plano_id=? AND concluido_em IS NULL AND ancora='flexivel' ORDER BY ordem", (plano_id,)).fetchall()
             for linha, nova_data in zip(pendentes, distribuir(date.today(), prazo, len(pendentes)) if pendentes else []):
                 db.execute("UPDATE passos SET data_prevista=? WHERE id=?", (nova_data, linha["id"]))
+            db.execute("UPDATE passos SET data_prevista=? WHERE plano_id=? AND concluido_em IS NULL AND ancora='rigida' AND data_prevista=?", (prazo.isoformat(), plano_id, prazo_anterior))
+            db.execute("UPDATE passos SET data_prevista=? WHERE plano_id=? AND concluido_em IS NULL AND data_prevista>?", (prazo.isoformat(), plano_id, prazo.isoformat()))
             dados["prazo_final"] = prazo.isoformat()
         for campo, valor in dados.items():
             db.execute(f"UPDATE planos SET {campo}=? WHERE id=?", (valor, plano_id))
@@ -259,13 +309,76 @@ def agenda(de: date = Query(default_factory=date.today), ate: date | None = None
     return grupos
 
 
+@app.get("/api/modelos")
+def listar_modelos():
+    with conectar() as db:
+        if not dados_licenca(db): return erro(403, "recurso_apoiador", "Modelos próprios fazem parte do Clareia Apoiador.")
+        linhas = db.execute("SELECT * FROM modelos ORDER BY criado_em DESC").fetchall()
+    return [{**{k: x[k] for k in ("id", "nome", "descricao", "categoria", "criado_em")}, "passos": json.loads(x["passos_json"])} for x in linhas]
+
+
+@app.post("/api/modelos", status_code=201)
+def salvar_modelo(entrada: ModeloEntrada):
+    with conectar() as db:
+        if not dados_licenca(db): return erro(403, "recurso_apoiador", "Modelos próprios fazem parte do Clareia Apoiador.")
+        plano = obter_plano(db, entrada.plano_id)
+        if not plano: return recurso_ausente()
+        modelo_id = uuid.uuid4().hex
+        passos = [{"titulo": p["titulo"], "detalhe": p["detalhe"], "ancora": p["ancora"]} for p in plano["passos"]]
+        db.execute("INSERT INTO modelos VALUES (?,?,?,?,?,?)", (modelo_id, entrada.nome, plano["descricao"], plano["categoria"], json.dumps(passos, ensure_ascii=False), agora()))
+        return {"id": modelo_id, "nome": entrada.nome, "descricao": plano["descricao"], "categoria": plano["categoria"], "passos": passos, "criado_em": agora()}
+
+
+@app.post("/api/modelos/{modelo_id}/usar", status_code=201)
+def usar_modelo(modelo_id: str, entrada: UsarModeloEntrada):
+    if entrada.prazo_final < date.today(): return erro(422, "prazo_no_passado", "Escolha hoje ou uma data futura.")
+    with conectar() as db:
+        if not dados_licenca(db): return erro(403, "recurso_apoiador", "Modelos próprios fazem parte do Clareia Apoiador.")
+        modelo = db.execute("SELECT * FROM modelos WHERE id=?", (modelo_id,)).fetchone()
+        if not modelo: return recurso_ausente("modelo")
+        passos = json.loads(modelo["passos_json"])
+        datas = distribuir(date.today(), entrada.prazo_final, len(passos))
+        plano_id = uuid.uuid4().hex
+        descricao = entrada.descricao or modelo["descricao"]
+        db.execute("INSERT INTO planos VALUES (?,?,?,?,?,?)", (plano_id, entrada.titulo or modelo["nome"], descricao, modelo["categoria"], entrada.prazo_final.isoformat(), agora()))
+        for ordem, (passo, prevista) in enumerate(zip(passos, datas)):
+            db.execute("INSERT INTO passos VALUES (?,?,?,?,?,?,?,?)", (uuid.uuid4().hex, plano_id, passo["titulo"], passo.get("detalhe", ""), prevista, None, ordem, "rigida" if passo.get("ancora") else "flexivel"))
+        return obter_plano(db, plano_id)
+
+
+@app.delete("/api/modelos/{modelo_id}", status_code=204)
+def excluir_modelo(modelo_id: str):
+    with conectar() as db:
+        if not dados_licenca(db): return erro(403, "recurso_apoiador", "Modelos próprios fazem parte do Clareia Apoiador.")
+        if not db.execute("SELECT 1 FROM modelos WHERE id=?", (modelo_id,)).fetchone(): return recurso_ausente("modelo")
+        db.execute("DELETE FROM modelos WHERE id=?", (modelo_id,))
+    return Response(status_code=204)
+
+
+def escapar_ics(texto: str) -> str:
+    return texto.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
+
+
 @app.get("/api/planos/{plano_id}/exportacao")
-def exportar(plano_id: str, formato: Literal["markdown", "html"] = "markdown"):
-    with conectar() as db: plano = obter_plano(db, plano_id)
+def exportar(plano_id: str, formato: Literal["markdown", "html", "ics"] = "markdown", capa: bool = False):
+    with conectar() as db:
+        plano = obter_plano(db, plano_id)
+        apoiador = bool(dados_licenca(db))
     if not plano: return recurso_ausente()
+    if formato == "ics":
+        if not apoiador: return erro(403, "recurso_apoiador", "Enviar para o calendário faz parte do Clareia Apoiador.")
+        linhas = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Clareia//Apoiador//PT-BR", "CALSCALE:GREGORIAN"]
+        for passo in plano["passos"]:
+            inicio = date.fromisoformat(passo["data_prevista"])
+            linhas += ["BEGIN:VEVENT", f"UID:{passo['id']}@clareia.local", f"DTSTAMP:{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}", f"DTSTART;VALUE=DATE:{inicio.strftime('%Y%m%d')}", f"DTEND;VALUE=DATE:{(inicio + timedelta(days=1)).strftime('%Y%m%d')}", f"SUMMARY:{escapar_ics(passo['titulo'])}", f"DESCRIPTION:{escapar_ics(plano['titulo'] + (' — ' + passo['detalhe'] if passo['detalhe'] else ''))}", "BEGIN:VALARM", "TRIGGER:-PT9H", "ACTION:DISPLAY", f"DESCRIPTION:{escapar_ics(passo['titulo'])}", "END:VALARM", "END:VEVENT"]
+        linhas.append("END:VCALENDAR")
+        return Response("\r\n".join(linhas) + "\r\n", media_type="text/calendar", headers={"Content-Disposition": f'attachment; filename="calendario-{plano_id[:8]}.ics"'})
     if formato == "html":
+        if capa and not apoiador: return erro(403, "recurso_apoiador", "A capa personalizada faz parte do Clareia Apoiador.")
         itens = "".join(f"<li>{'✓' if p['concluido_em'] else '☐'} {html.escape(p['data_prevista'])} — {html.escape(p['titulo'])}</li>" for p in plano["passos"])
-        corpo = f"<!doctype html><meta charset=utf-8><title>{html.escape(plano['titulo'])}</title><h1>{html.escape(plano['titulo'])}</h1><p>{html.escape(plano['descricao'])}</p><ul>{itens}</ul>"
+        abertura = f"<section class='capa'><small>PLANO CLAREIA</small><h1>{html.escape(plano['titulo'])}</h1><p>{html.escape(plano['descricao'])}</p><strong>Prazo: {html.escape(plano['prazo_final'])}</strong></section>" if capa else f"<h1>{html.escape(plano['titulo'])}</h1><p>{html.escape(plano['descricao'])}</p>"
+        estilo = "<style>body{font:16px system-ui;max-width:800px;margin:3rem auto;color:#18231d}.capa{min-height:80vh;display:flex;flex-direction:column;justify-content:center;border-left:12px solid #e2a52c;padding:3rem;page-break-after:always}.capa h1{font-size:3rem}li{margin:.7rem 0}@media print{body{margin:0}.capa{min-height:90vh}}</style>"
+        corpo = f"<!doctype html><html lang='pt-BR'><meta charset=utf-8><title>{html.escape(plano['titulo'])}</title>{estilo}<body>{abertura}<h2>Etapas</h2><ul>{itens}</ul></body></html>"
         return Response(corpo, media_type="text/html", headers={"Content-Disposition": f'attachment; filename="plano-{plano_id[:8]}.html"'})
     linhas = [f"# {plano['titulo']}", "", plano["descricao"], "", f"Prazo final: {plano['prazo_final']}", ""] + [f"- [{'x' if p['concluido_em'] else ' '}] {p['data_prevista']} — {p['titulo']}" for p in plano["passos"]]
     return Response("\n".join(linhas), media_type="text/markdown", headers={"Content-Disposition": f'attachment; filename="plano-{plano_id[:8]}.md"'})

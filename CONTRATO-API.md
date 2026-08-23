@@ -21,6 +21,7 @@ type Erro = { erro: { codigo: string; mensagem: string } };
 ## Rotas
 
 - `GET /api/saude` → `{ "versao": "1.0.0", "ollama": boolean }`.
+- `GET /api/licenca` → estado Apoiador, checkout configurado e preço; `POST /api/licenca` ativa uma chave offline; `DELETE` desativa localmente.
 - `POST /api/planos/preparar` recebe `{ descricao, prazo_final }` e retorna `{ categoria, titulo_sugerido, perguntas: [{ id, rotulo, tipo, opcoes, obrigatoria }] }`.
 - `POST /api/planos` recebe `{ descricao, prazo_final, categoria?, titulo?, respostas?: Record<string, unknown>, usar_ollama?: boolean }` e retorna `Plano` (201). O motor distribui os passos até o prazo.
 - `GET /api/planos?q=&status=` → `ResumoPlano[]`; status: `ativos`, `concluidos` ou `todos`.
@@ -33,7 +34,8 @@ type Erro = { erro: { codigo: string; mensagem: string } };
 - `POST /api/planos/{id}/passos/{passo_id}/adiar` recebe `{ dias: number }` → `Passo`. Limita a nova data ao prazo final e não altera passos âncora.
 - `PUT /api/planos/{id}/ordem` recebe `{ passos: string[] }` contendo todos os IDs uma vez → `Plano`.
 - `GET /api/agenda?de=AAAA-MM-DD&ate=AAAA-MM-DD` → `{ atrasados: ItemAgenda[], periodo: ItemAgenda[] }`; cada item é um `Passo` acrescido de `{ plano_id, plano_titulo, prazo_final }`. O padrão é hoje até hoje + 7 dias.
-- `GET /api/planos/{id}/exportacao?formato=markdown|html` → arquivo para download. O padrão é Markdown.
+- `GET /api/planos/{id}/exportacao?formato=markdown|html|ics&capa=false` → arquivo. Calendário e capa são Apoiador.
+- `GET/POST /api/modelos`, `POST /api/modelos/{id}/usar`, `DELETE /api/modelos/{id}` → modelos próprios Apoiador.
 
 ## Regras comuns
 

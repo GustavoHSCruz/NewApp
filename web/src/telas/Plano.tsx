@@ -4,12 +4,14 @@ import { api } from '../api/cliente'
 import type { Passo, Plano as TPlano } from '../api/tipos'
 import { dataCurta, dataLonga, hojeISO, quando } from '../util/datas'
 import { Carregando, Erro } from '../componentes/Estados'
+import { useLicenca } from '../util/licenca'
 import { Progresso } from '../componentes/Progresso'
 import { Marcar } from '../componentes/Marcar'
 
 export function Plano() {
   const { id = '' } = useParams()
   const navegar = useNavigate()
+  const { apoiador } = useLicenca()
   const [plano, setPlano] = useState<TPlano | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState(false)
@@ -17,6 +19,9 @@ export function Plano() {
   const [editandoPlano, setEditandoPlano] = useState(false)
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false)
   const [novoPasso, setNovoPasso] = useState('')
+  const [salvandoModelo, setSalvandoModelo] = useState(false)
+  const [nomeModelo, setNomeModelo] = useState('')
+  const [modeloSalvo, setModeloSalvo] = useState(false)
   const hoje = hojeISO()
 
   const carregar = useCallback(async () => {
@@ -71,10 +76,51 @@ export function Plano() {
           <button className="btn btn--p" onClick={() => setEditandoPlano(!editandoPlano)}>
             {editandoPlano ? 'Fechar' : 'Editar plano'}
           </button>
+          {apoiador && (
+            <button className="btn btn--p" onClick={() => { setSalvandoModelo(true); setNomeModelo(plano.titulo); setModeloSalvo(false) }}>
+              Salvar como modelo
+            </button>
+          )}
           <button className="btn btn--p" onClick={() => window.print()}>Imprimir</button>
-          <a className="btn btn--p" href={api.urlExportacao(plano.id, 'markdown')} download>Baixar</a>
         </div>
       </div>
+
+      {salvandoModelo && (
+        <div className="cartao" style={{ padding: '1.1rem 1.2rem', marginBottom: '1.5rem' }}>
+          {modeloSalvo ? (
+            <div className="editor__linha" style={{ alignItems: 'center' }}>
+              <p className="sub" style={{ margin: 0 }}>
+                Modelo guardado. Ele aparece agora em <Link to="/modelos">Modelos</Link> e no começo de um plano novo.
+              </p>
+              <button className="btn btn--fantasma btn--p" style={{ marginLeft: 'auto' }} onClick={() => setSalvandoModelo(false)}>Fechar</button>
+            </div>
+          ) : (
+            <div className="editor">
+              <label className="campo" style={{ margin: 0 }}>
+                <span>Nome do modelo</span>
+                <small>Guarda os passos deste plano, sem as datas. Você escolhe o prazo a cada vez que usar.</small>
+                <input type="text" value={nomeModelo} onChange={(e) => setNomeModelo(e.target.value)} />
+              </label>
+              <div className="editor__linha">
+                <button
+                  className="btn btn--primario"
+                  disabled={ocupado || !nomeModelo.trim()}
+                  onClick={() => {
+                    setOcupado(true)
+                    api.salvarModelo(plano.id, nomeModelo.trim())
+                      .then(() => setModeloSalvo(true))
+                      .catch((e) => setErro(e instanceof Error ? e.message : 'Não consegui salvar o modelo.'))
+                      .finally(() => setOcupado(false))
+                  }}
+                >
+                  Salvar modelo
+                </button>
+                <button className="btn btn--fantasma" onClick={() => setSalvandoModelo(false)}>Cancelar</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {editandoPlano && (
         <div className="cartao" style={{ padding: '1.1rem 1.2rem', marginBottom: '1.5rem' }}>
@@ -99,8 +145,23 @@ export function Plano() {
         </div>
       )}
 
-      <div style={{ maxWidth: '28rem', marginBottom: '2rem' }}>
+      <div style={{ maxWidth: '28rem', marginBottom: '1.25rem' }}>
         <Progresso feitos={plano.concluidos} total={plano.total} />
+      </div>
+
+      <div className="exportar">
+        <span className="exportar__rotulo">Levar este plano</span>
+        <a className="exportar__link" href={api.urlExportacao(plano.id, 'markdown')} download>Markdown</a>
+        {apoiador ? (
+          <>
+            <a className="exportar__link" href={api.urlExportacao(plano.id, 'ics')} download>Calendário (.ics)</a>
+            <a className="exportar__link" href={api.urlExportacao(plano.id, 'html', true)} download>HTML com capa</a>
+          </>
+        ) : (
+          <Link className="exportar__link exportar__link--apoiador" to="/apoiar">
+            Calendário e HTML com capa · Apoiador
+          </Link>
+        )}
       </div>
 
       {concluido && (

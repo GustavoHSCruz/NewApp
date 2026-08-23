@@ -37,6 +37,10 @@ Não há cadastro, telemetria ou nuvem. Se o [Ollama](https://ollama.com/) já e
 - API e interface separadas por HTTP;
 - armazenamento local em SQLite.
 
+## Clareia Apoiador
+
+Quem quiser apoiar o desenvolvimento pode adquirir uma licença vitalícia de R$ 39. Ela acrescenta calendário, modelos próprios, documentos com capa e temas extras sem retirar nenhum recurso já gratuito. Para abrir as vendas e emitir licenças, consulte [docs/MONETIZACAO.md](docs/MONETIZACAO.md).
+
 Para desenvolvimento e decisões técnicas, consulte [docs/ARQUITETURA.md](docs/ARQUITETURA.md) e [CONTRATO-API.md](CONTRATO-API.md). A documentação interativa da API fica em `http://127.0.0.1:8787/api/docs` enquanto o aplicativo está aberto.
 
 ## Licença

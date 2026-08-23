@@ -77,6 +77,29 @@ export interface EdicaoPasso {
 
 export type StatusFiltro = 'ativos' | 'concluidos' | 'todos'
 
+export interface Licenca {
+  ativa: boolean
+  apoiador: { nome: string | null; email: string | null; id: string | null } | null
+  /** null = a compra ainda não está aberta (CLAREIA_CHECKOUT_URL vazia) */
+  checkout_url: string | null
+  preco: { valor: number; moeda: string; tipo: string }
+}
+
+export interface PassoDeModelo {
+  titulo: string
+  detalhe: string
+  ancora: boolean
+}
+
+export interface Modelo {
+  id: string
+  nome: string
+  descricao: string
+  categoria: string
+  criado_em: string
+  passos: PassoDeModelo[]
+}
+
 /** Erro em formato único: { erro: { codigo, mensagem } } */
 export class ErroApi extends Error {
   codigo: string

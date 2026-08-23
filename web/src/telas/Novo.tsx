@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { api } from '../api/cliente'
-import type { Pergunta, Preparo } from '../api/tipos'
+import type { Modelo, Pergunta, Preparo } from '../api/tipos'
 import { hojeISO, somarDias } from '../util/datas'
 import { Erro } from '../componentes/Estados'
+import { useLicenca } from '../util/licenca'
 
 const EXEMPLOS = [
   'Organizar a mudança de apartamento',
@@ -20,6 +22,8 @@ const PRAZOS = [
 
 export function Novo() {
   const navegar = useNavigate()
+  const { apoiador } = useLicenca()
+  const [modelos, setModelos] = useState<Modelo[]>([])
   const [etapa, setEtapa] = useState(1)
   const [descricao, setDescricao] = useState('')
   const [prazo, setPrazo] = useState(somarDias(hojeISO(), 30))
@@ -34,6 +38,11 @@ export function Novo() {
   useEffect(() => {
     api.saude().then((s) => setOllamaDisponivel(s.ollama)).catch(() => setOllamaDisponivel(false))
   }, [])
+
+  useEffect(() => {
+    if (!apoiador) { setModelos([]); return }
+    api.listarModelos().then(setModelos).catch(() => setModelos([]))
+  }, [apoiador])
 
   const preparar = async () => {
     setOcupado(true); setErro(null)
@@ -99,6 +108,13 @@ export function Novo() {
               Continuar
             </button>
           </div>
+
+          {modelos.length > 0 && (
+            <p className="sub" style={{ marginTop: '2rem', fontSize: '0.92rem' }}>
+              Ou <Link to="/modelos">comece de um modelo seu</Link> — você tem{' '}
+              {modelos.length === 1 ? 'um modelo salvo' : `${modelos.length} modelos salvos`}.
+            </p>
+          )}
         </>
       )}
 

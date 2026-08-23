@@ -1,5 +1,5 @@
 import type {
-  Agenda, EdicaoPasso, NovoPlano, Passo, Plano, Preparo, ResumoPlano, Saude, StatusFiltro,
+  Agenda, EdicaoPasso, Licenca, Modelo, NovoPlano, Passo, Plano, Preparo, ResumoPlano, Saude, StatusFiltro,
 } from './tipos'
 import { ErroApi } from './tipos'
 import { apiMock } from './mock'
@@ -45,8 +45,19 @@ export interface Api {
   excluirPasso(planoId: string, passoId: string): Promise<void>
   adiarPasso(planoId: string, passoId: string, dias: number): Promise<Passo>
   reordenar(planoId: string, passos: string[]): Promise<Plano>
-  urlExportacao(id: string, formato: 'markdown' | 'html'): string
+  urlExportacao(id: string, formato: 'markdown' | 'html' | 'ics', capa?: boolean): string
+  licenca(): Promise<Licenca>
+  ativarLicenca(chave: string): Promise<Licenca>
+  removerLicenca(): Promise<void>
+  listarModelos(): Promise<Modelo[]>
+  salvarModelo(planoId: string, nome: string): Promise<Modelo>
+  usarModelo(modeloId: string, dados: { titulo?: string; descricao?: string; prazo_final: string }): Promise<Plano>
+  excluirModelo(modeloId: string): Promise<void>
 }
+
+/** A API responde 403 recurso_apoiador quando falta licença. */
+export const ehRecursoDeApoiador = (e: unknown) =>
+  e instanceof ErroApi && e.codigo === 'recurso_apoiador'
 
 const apiHttp: Api = {
   saude: () => req('/api/saude'),
@@ -69,7 +80,15 @@ const apiHttp: Api = {
   adiarPasso: (p, s, dias) =>
     req(`/api/planos/${p}/passos/${s}/adiar`, { method: 'POST', body: JSON.stringify({ dias }) }),
   reordenar: (p, passos) => req(`/api/planos/${p}/ordem`, { method: 'PUT', body: JSON.stringify({ passos }) }),
-  urlExportacao: (id, formato) => `${BASE}/api/planos/${id}/exportacao?formato=${formato}`,
+  urlExportacao: (id, formato, capa) =>
+    `${BASE}/api/planos/${id}/exportacao?formato=${formato}${capa ? '&capa=true' : ''}`,
+  licenca: () => req('/api/licenca'),
+  ativarLicenca: (chave) => req('/api/licenca', { method: 'POST', body: JSON.stringify({ chave }) }),
+  removerLicenca: () => req('/api/licenca', { method: 'DELETE' }),
+  listarModelos: () => req('/api/modelos'),
+  salvarModelo: (plano_id, nome) => req('/api/modelos', { method: 'POST', body: JSON.stringify({ plano_id, nome }) }),
+  usarModelo: (id, dados) => req(`/api/modelos/${id}/usar`, { method: 'POST', body: JSON.stringify(dados) }),
+  excluirModelo: (id) => req(`/api/modelos/${id}`, { method: 'DELETE' }),
 }
 
 export const api: Api = USAR_MOCK ? apiMock : apiHttp

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import urllib.request
 from datetime import date, timedelta
@@ -15,7 +16,7 @@ MODELOS: dict[str, dict[str, Any]] = {
         {"id": "cargo", "rotulo": "Qual é a vaga?", "tipo": "texto", "opcoes": [], "obrigatoria": False},
         {"id": "tecnica", "rotulo": "Existe uma etapa técnica?", "tipo": "sim_nao", "opcoes": [], "obrigatoria": False}],
         "passos": ["Pesquisar a empresa e a vaga", "Adaptar o currículo para a vaga", "Separar histórias com resultados concretos", "Revisar os temas técnicos", "Treinar respostas em voz alta", "Preparar perguntas para a empresa", "Testar câmera, áudio e acesso", "Participar da entrevista"]},
-    "documentos": {"gatilhos": ["document", "cpf", "cnh", "passaporte", "certidão", "regulariz"], "perguntas": [
+    "documentos": {"gatilhos": ["document", "cpf", "cnh", "rg", "passaporte", "certidão", "regulariz", "segunda via", "título de eleitor", "titulo de eleitor", "carteira de trabalho", "antecedentes"], "perguntas": [
         {"id": "qual", "rotulo": "Qual documento você precisa resolver?", "tipo": "texto", "opcoes": [], "obrigatoria": False},
         {"id": "presencial", "rotulo": "Há atendimento presencial?", "tipo": "sim_nao", "opcoes": [], "obrigatoria": False}],
         "passos": ["Confirmar requisitos no órgão responsável", "Separar documentos disponíveis", "Providenciar documentos faltantes", "Pagar taxas necessárias", "Agendar o atendimento", "Comparecer ou enviar a solicitação", "Acompanhar o andamento", "Conferir e guardar o documento"]},
@@ -41,7 +42,11 @@ def classificar(descricao: str) -> str:
 
 def titulo_sugerido(descricao: str) -> str:
     limpo = re.sub(r"\s+", " ", descricao).strip(" .")
-    return (limpo[:57] + "…" if len(limpo) > 60 else limpo).capitalize()
+    primeira_oracao = re.split(r"[,;:]|\s+[—–-]\s+", limpo, maxsplit=1)[0]
+    base = primeira_oracao if len(primeira_oracao) >= 12 else limpo
+    if len(base) > 60:
+        base = base[:57].rsplit(" ", 1)[0].rstrip(",;:-") + "…"
+    return base[:1].upper() + base[1:]
 
 
 def preparar(descricao: str) -> dict[str, Any]:
@@ -65,8 +70,9 @@ def passos_deterministicos(categoria: str, respostas: dict[str, Any]) -> list[st
 
 
 def ollama_disponivel() -> tuple[bool, str | None]:
+    host = os.environ.get("OLLAMA_HOST", "127.0.0.1:11434").removeprefix("http://").removeprefix("https://").rstrip("/")
     try:
-        with urllib.request.urlopen("http://127.0.0.1:11434/api/tags", timeout=.35) as resposta:
+        with urllib.request.urlopen(f"http://{host}/api/tags", timeout=.35) as resposta:
             modelos = json.load(resposta).get("models", [])
         return bool(modelos), modelos[0].get("name") if modelos else None
     except Exception:
@@ -79,8 +85,9 @@ def enriquecer_com_ollama(descricao: str, categoria: str, respostas: dict[str, A
         return None
     prompt = "Crie de 6 a 10 passos curtos e concretos em pt-BR. Responda SOMENTE array JSON de strings. Objetivo: " + descricao + ". Contexto: " + json.dumps(respostas, ensure_ascii=False)
     corpo = json.dumps({"model": modelo, "prompt": prompt, "stream": False, "format": "json"}).encode()
+    host = os.environ.get("OLLAMA_HOST", "127.0.0.1:11434").removeprefix("http://").removeprefix("https://").rstrip("/")
     try:
-        req = urllib.request.Request("http://127.0.0.1:11434/api/generate", data=corpo, headers={"Content-Type": "application/json"})
+        req = urllib.request.Request(f"http://{host}/api/generate", data=corpo, headers={"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=45) as resposta:
             dados = json.loads(json.load(resposta).get("response", "[]"))
         if isinstance(dados, dict):

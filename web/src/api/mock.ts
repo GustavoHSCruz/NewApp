@@ -3,11 +3,13 @@
  * Existe só para eu (front) conseguir trabalhar antes da API subir e para
  * `npm run dev:mock` funcionar sem Python. O motor de verdade vive em `api/`.
  */
-import type { Agenda, EdicaoPasso, ItemAgenda, NovoPlano, Passo, Plano, Preparo, ResumoPlano } from './tipos'
+import type { Agenda, EdicaoPasso, ItemAgenda, Licenca, Modelo, NovoPlano, Passo, Plano, Preparo, ResumoPlano } from './tipos'
 import { ErroApi } from './tipos'
 import type { Api } from './cliente'
 
 const CHAVE = 'clareia.mock.v1'
+const CHAVE_LICENCA = 'clareia.mock.licenca'
+const CHAVE_MODELOS = 'clareia.mock.modelos'
 
 const hoje = () => new Date().toISOString().slice(0, 10)
 const dias = (base: string, n: number) => {
@@ -84,6 +86,25 @@ function classificar(descricao: string) {
 }
 
 const espera = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 120))
+
+function lerLicenca(): Licenca {
+  let apoiador: Licenca['apoiador'] = null
+  try { apoiador = JSON.parse(localStorage.getItem(CHAVE_LICENCA) ?? 'null') } catch { apoiador = null }
+  return {
+    ativa: !!apoiador,
+    apoiador,
+    checkout_url: null,
+    preco: { valor: 39, moeda: 'BRL', tipo: 'pagamento_unico' },
+  }
+}
+function lerModelos(): Modelo[] {
+  try { return JSON.parse(localStorage.getItem(CHAVE_MODELOS) ?? '[]') } catch { return [] }
+}
+function exigirApoiador() {
+  if (!lerLicenca().ativa) {
+    throw new ErroApi('recurso_apoiador', 'Modelos próprios fazem parte do Clareia Apoiador.', 403)
+  }
+}
 
 export const apiMock: Api = {
   saude: () => espera({ versao: 'mock', ollama: false }),
@@ -215,6 +236,58 @@ export const apiMock: Api = {
     p.passos.forEach((s) => (s.ordem = ordem.indexOf(s.id)))
     gravar(todos)
     return espera(contar(p))
+  },
+  licenca: () => espera(lerLicenca()),
+  ativarLicenca: (chave) => {
+    if (!chave.trim().startsWith('CLA1') || chave.trim().length < 20) {
+      throw new ErroApi('licenca_invalida', 'Essa chave não é válida. Confira se ela foi copiada inteira.', 422)
+    }
+    localStorage.setItem(CHAVE_LICENCA, JSON.stringify({ nome: 'Apoiador de demonstração', email: null, id: 'demo' }))
+    return espera(lerLicenca())
+  },
+  removerLicenca: () => {
+    localStorage.removeItem(CHAVE_LICENCA)
+    return espera(undefined)
+  },
+  listarModelos: () => {
+    exigirApoiador()
+    return espera(lerModelos())
+  },
+  salvarModelo: (planoId, nome) => {
+    exigirApoiador()
+    const p = ler().find((x) => x.id === planoId)!
+    const modelo: Modelo = {
+      id: id(), nome, descricao: p.descricao, categoria: p.categoria, criado_em: new Date().toISOString(),
+      passos: p.passos.map((s) => ({ titulo: s.titulo, detalhe: s.detalhe, ancora: s.ancora })),
+    }
+    const todos = lerModelos()
+    todos.unshift(modelo)
+    localStorage.setItem(CHAVE_MODELOS, JSON.stringify(todos))
+    return espera(modelo)
+  },
+  usarModelo: (modeloId, d) => {
+    exigirApoiador()
+    const m = lerModelos().find((x) => x.id === modeloId)!
+    const inicio = hoje()
+    const total = m.passos.length
+    const vao = Math.max(1, Math.round((new Date(d.prazo_final).getTime() - new Date(inicio).getTime()) / 86400000))
+    const plano: Plano = contar({
+      id: id(), titulo: d.titulo ?? m.nome, descricao: d.descricao ?? m.descricao, categoria: m.categoria,
+      prazo_final: d.prazo_final, criado_em: new Date().toISOString(), total: 0, concluidos: 0,
+      passos: m.passos.map((p, i) => ({
+        id: id(), titulo: p.titulo, detalhe: p.detalhe, ancora: p.ancora, concluido_em: null, ordem: i,
+        data_prevista: dias(inicio, Math.round(((i + 1) / total) * vao)),
+      })),
+    })
+    const todos = ler()
+    todos.push(plano)
+    gravar(todos)
+    return espera(plano)
+  },
+  excluirModelo: (modeloId) => {
+    exigirApoiador()
+    localStorage.setItem(CHAVE_MODELOS, JSON.stringify(lerModelos().filter((x) => x.id !== modeloId)))
+    return espera(undefined)
   },
   urlExportacao: (pid) => {
     const p = ler().find((x) => x.id === pid)

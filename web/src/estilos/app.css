@@ -226,6 +226,9 @@ textarea { resize: vertical; min-height: 6.5rem; line-height: 1.5; }
 }
 .opcao:hover { border-color: var(--tinta-3); color: var(--tinta); }
 .opcao[aria-pressed='true'] { background: var(--acento); border-color: var(--acento); color: #fff; font-weight: 500; }
+/* Tema de apoiador: aparece, explica e leva para a tela — nunca some da lista. */
+.opcao--bloqueada { text-decoration: none; border-style: dashed; color: var(--tinta-3); }
+.opcao--bloqueada:hover { border-color: var(--acento); color: var(--acento); }
 :root[data-tema='escuro'] .opcao[aria-pressed='true'] { color: #17122e; }
 
 /* ------------------------------------------------------- assistente (novo) */
@@ -300,6 +303,61 @@ textarea { resize: vertical; min-height: 6.5rem; line-height: 1.5; }
 
 .editor { display: grid; gap: 0.6rem; }
 .editor__linha { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+/* -------------------------------------------------------- levar o plano */
+
+.exportar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.9rem;
+  margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--linha);
+}
+.exportar__rotulo {
+  font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 0.16em; color: var(--tinta-3);
+}
+.exportar__link { color: var(--tinta-2); text-decoration: none; border-bottom: 1px solid var(--linha-forte); font-size: 0.92rem; }
+.exportar__link:hover { color: var(--acento); border-color: var(--acento); }
+.exportar__link--apoiador { color: var(--tinta-3); border-bottom-style: dashed; }
+
+/* ------------------------------------------------------- convite apoiador */
+
+.convite {
+  display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap;
+  padding: 1.25rem 1.4rem; margin-top: 1.5rem;
+  border-color: var(--acento);
+  background: linear-gradient(120deg, var(--acento-fraco), var(--superficie) 70%);
+}
+.convite > div { flex: 1 1 18rem; }
+.convite__olho {
+  font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 0.16em; color: var(--acento); margin: 0 0 0.35rem;
+}
+.convite__texto { margin: 0; color: var(--tinta-2); max-width: 48ch; }
+.convite__texto strong { color: var(--tinta); }
+
+/* ---------------------------------------------------------- tela apoiador */
+
+.planos-preco { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); align-items: start; }
+
+.coluna-preco { padding: 1.5rem 1.4rem; }
+.coluna-preco--destaque { border-color: var(--acento); box-shadow: var(--sombra-alta); }
+.coluna-preco__valor {
+  font-family: var(--display); font-size: 1.75rem; font-weight: 700;
+  letter-spacing: -0.03em; margin: 0 0 1.1rem;
+}
+.coluna-preco__valor small { font-family: var(--texto); font-size: 0.9rem; font-weight: 400; color: var(--tinta-2); letter-spacing: 0; }
+
+.marcado { list-style: none; padding: 0; margin: 0 0 1.3rem; display: grid; gap: 0.55rem; }
+.marcado li { padding-left: 1.6rem; position: relative; color: var(--tinta-2); }
+.marcado li::before {
+  content: ''; position: absolute; left: 0; top: 0.55em; width: 9px; height: 5px;
+  border-left: 2px solid var(--tinta-3); border-bottom: 2px solid var(--tinta-3);
+  transform: rotate(-45deg);
+}
+.marcado--acento li { color: var(--tinta); }
+.marcado small { display: block; color: var(--tinta-3); font-size: 0.85rem; margin-top: 0.15rem; line-height: 1.4; }
+.marcado--acento li::before { border-color: var(--acento); }
+
+.coluna-preco .btn { width: 100%; }
 
 /* -------------------------------------------------------------- responsivo */
 
